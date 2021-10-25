@@ -9,6 +9,9 @@ from fastapi.security import (
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, ValidationError
+import httpx
+from fastapi.middleware.cors import CORSMiddleware
+from src.schemas import UsuarioSchema
 
 
 # to get a string like this run:
@@ -16,23 +19,7 @@ from pydantic import BaseModel, ValidationError
 SECRET_KEY = "6120898dcf1ef5f1b3e46e745d0cfdd1d9733042b24fa239617a9b4419d32253"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-fake_users_db = {
-    "johndoe": {
-        "username": "johndoe",
-        "full_name": "John Doe",
-        "email": "johndoe@example.com",
-        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
-        "disabled": False,
-    },
-    "alice": {
-        "username": "alice",
-        "full_name": "Alice Chains",
-        "email": "alicechains@example.com",
-        "hashed_password": "$2b$12$gSvqqUPvlXP2tfVFaWK1Be7DlH.PKZbv5H8KnzzVgXXbVxpva.pFm",
-        "disabled": True,
-    },
-}
+API_USUARIOS_URL = "http://localhost:3000"
 
 
 class Token(BaseModel):
@@ -47,23 +34,29 @@ class TokenData(BaseModel):
 
 class User(BaseModel):
     username: str
-    email: Optional[str] = None
-    full_name: Optional[str] = None
-    disabled: Optional[bool] = None
 
 
 class UserInDB(User):
-    hashed_password: str
+    password: str
+    esAdmin: bool
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="token",
-    scopes={"me": "Read information about the current user.", "items": "Read items."}
+    scopes={"admin": "Privilegios de admin."}
 )
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def verify_password(plain_password, hashed_password):
@@ -74,17 +67,17 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def get_user(db, username: str):
-    if username in db:
-        user_dict = db[username]
-        return UserInDB(**user_dict)
+def get_user(username: str):
+    response = httpx.get(API_USUARIOS_URL + f"/usuarios/{username}")
+    usuario = UsuarioSchema.UsuarioResponse.parse_obj(response.json().get("data"))
+    return usuario
 
 
-def authenticate_user(fake_db, username: str, password: str):
-    user = get_user(fake_db, username)
+def authenticate_user(username: str, password: str):
+    user = get_user(username)
     if not user:
         return False
-    if not verify_password(password, user.hashed_password):
+    if not verify_password(password, user.password):
         return False
     return user
 
@@ -121,7 +114,7 @@ async def get_current_user(
         token_data = TokenData(scopes=token_scopes, username=username)
     except (JWTError, ValidationError):
         raise credentials_exception
-    user = get_user(fake_users_db, username=token_data.username)
+    user = get_user(token_data.username)
     if user is None:
         raise credentials_exception
     for scope in security_scopes.scopes:
@@ -135,16 +128,16 @@ async def get_current_user(
 
 
 async def get_current_active_user(
-    current_user: User = Security(get_current_user, scopes=["me"])
+    current_user: User = Security(get_current_user)
 ):
-    if current_user.disabled:
-        raise HTTPException(status_code=400, detail="Inactive user")
+    # if current_user.disabled:
+    #     raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+    user = authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -160,13 +153,15 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
 
-@app.get("/users/me/items/")
-async def read_own_items(
-    current_user: User = Security(get_current_active_user, scopes=["items"])
-):
-    return [{"item_id": "Foo", "owner": current_user.username}]
+# @app.get("/users/me/items/")
+# async def read_own_items(
+#     current_user: User = Security(get_current_active_user, scopes=["items"])
+# ):
+#     return [{"item_id": "Foo", "owner": current_user.username}]
 
 
-@app.get("/status/")
-async def read_system_status(current_user: User = Depends(get_current_user)):
-    return {"status": "ok"}
+@app.post("/usuarios/registrar", response_model=UsuarioSchema.UsuarioResponse)
+async def registrar_usuario(usuario: UsuarioSchema.CreateUsuarioRequest):
+    usuario.password = get_password_hash(usuario.password)
+    response = httpx.post(API_USUARIOS_URL + "/usuarios/add", json=usuario.dict())
+    return response.json()
