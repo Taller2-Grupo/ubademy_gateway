@@ -12,14 +12,16 @@ from pydantic import BaseModel, ValidationError
 import httpx
 from fastapi.middleware.cors import CORSMiddleware
 from src.schemas import UsuarioSchema
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 
 # to get a string like this run:
 # openssl rand -hex 32
 SECRET_KEY = "6120898dcf1ef5f1b3e46e745d0cfdd1d9733042b24fa239617a9b4419d32253"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-API_USUARIOS_URL = "http://localhost:3000"
 
 
 class Token(BaseModel):
@@ -68,7 +70,7 @@ def get_password_hash(password):
 
 
 def get_user(username: str):
-    response = httpx.get(API_USUARIOS_URL + f"/usuarios/{username}")
+    response = httpx.get(os.getenv("API_USUARIOS_URL") + f"/usuarios/{username}")
     usuario = UsuarioSchema.UsuarioResponse.parse_obj(response.json().get("data"))
     return usuario
 
@@ -163,5 +165,5 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 @app.post("/usuarios/registrar", response_model=UsuarioSchema.UsuarioResponse)
 async def registrar_usuario(usuario: UsuarioSchema.CreateUsuarioRequest):
     usuario.password = get_password_hash(usuario.password)
-    response = httpx.post(API_USUARIOS_URL + "/usuarios/add", json=usuario.dict())
+    response = httpx.post(os.getenv("API_USUARIOS_URL") + "/usuarios/add", json=usuario.dict())
     return response.json()
