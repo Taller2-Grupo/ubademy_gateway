@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import Depends, FastAPI, HTTPException, Security, status
@@ -14,6 +15,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.schemas import UsuarioSchema
 from dotenv import load_dotenv
 import os
+import pyrebase
+
+config = {
+  "apiKey": "AIzaSyAN9QKyNRt236PAj2r4Axn-Kvc0iZFdIUM",
+  "authDomain": "ubademy-grupo7.firebaseapp.com",
+  "databaseURL": "https://ubademy-grupo7-default-rtdb.firebaseio.com/",
+  "storageBucket": ""
+}
+
+firebase = pyrebase.initialize_app(config)
 
 load_dotenv()
 
@@ -155,15 +166,23 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
 
-# @app.get("/users/me/items/")
-# async def read_own_items(
-#     current_user: User = Security(get_current_active_user, scopes=["items"])
-# ):
-#     return [{"item_id": "Foo", "owner": current_user.username}]
-
-
 @app.post("/usuarios/registrar", response_model=UsuarioSchema.UsuarioResponse)
 async def registrar_usuario(usuario: UsuarioSchema.CreateUsuarioRequest):
     usuario.password = get_password_hash(usuario.password)
     response = httpx.post(os.getenv("API_USUARIOS_URL") + "/usuarios/add", json=usuario.dict())
     return response.json()
+
+
+@app.get("/token/swap/{firebase_token}")
+async def swap_token(firebase_token: str):
+    data = firebase.auth().get_account_info(firebase_token)
+    mail = data["users"][0]["email"]
+    user = get_user(mail)
+    if not user:
+        raise HTTPException(status_code=400, detail="Incorrect username")
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username},
+        expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}

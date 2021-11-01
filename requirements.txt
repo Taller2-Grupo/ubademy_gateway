@@ -8,3 +8,4 @@ passlib[bcrypt]
 httpx
 jose
 python-dotenv
+pyrebase4
