@@ -16,6 +16,7 @@ from src.schemas import UsuarioSchema
 from dotenv import load_dotenv
 import os
 import pyrebase
+from fastapi.responses import RedirectResponse
 
 config = {
   "apiKey": "AIzaSyAN9QKyNRt236PAj2r4Axn-Kvc0iZFdIUM",
@@ -151,11 +152,18 @@ async def get_current_active_user(
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = authenticate_user(form_data.username, form_data.password)
+
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
+
+    scopes: List[str] = []
+
+    if user.esAdmin:
+        scopes.append("admin")
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username, "scopes": form_data.scopes},
+        data={"sub": user.username, "scopes": scopes},
         expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
@@ -186,3 +194,8 @@ async def swap_token(firebase_token: str):
         expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/api_usuarios/{rest_of_path:path}")
+async def redirect_typer(rest_of_path: str):
+    return RedirectResponse(f"https://ubademy-usuarios.herokuapp.com/{rest_of_path}")
