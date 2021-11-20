@@ -180,7 +180,7 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 async def registrar_usuario(usuario: UsuarioSchema.CreateUsuarioRequest):
     usuario.password = get_password_hash(usuario.password)
     response = create_user(usuario)
-    return response.json()
+    return response.json().get("data")
 
 
 @app.get("/token/swap/{firebase_token}")
