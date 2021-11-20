@@ -9,3 +9,4 @@ httpx
 jose
 python-dotenv
 pyrebase4
+pytest

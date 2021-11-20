@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import Depends, FastAPI, HTTPException, Security, status
@@ -10,13 +9,12 @@ from fastapi.security import (
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, ValidationError
-import httpx
 from fastapi.middleware.cors import CORSMiddleware
 from src.schemas import UsuarioSchema
 from dotenv import load_dotenv
-import os
 import pyrebase
 from fastapi.responses import RedirectResponse
+from src.external_services.api_usuarios_external_service import get_user_by_username, create_user
 
 config = {
   "apiKey": "AIzaSyAN9QKyNRt236PAj2r4Axn-Kvc0iZFdIUM",
@@ -82,7 +80,11 @@ def get_password_hash(password):
 
 
 def get_user(username: str):
-    response = httpx.get(os.getenv("API_USUARIOS_URL") + f"/usuarios/{username}")
+    response = get_user_by_username(username)
+
+    if response.status_code == 404:
+        raise HTTPException(404, "Usuario no encontrado")
+
     usuario = UsuarioSchema.UsuarioResponse.parse_obj(response.json().get("data"))
     return usuario
 
@@ -177,7 +179,7 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 @app.post("/usuarios/registrar", response_model=UsuarioSchema.UsuarioResponse)
 async def registrar_usuario(usuario: UsuarioSchema.CreateUsuarioRequest):
     usuario.password = get_password_hash(usuario.password)
-    response = httpx.post(os.getenv("API_USUARIOS_URL") + "/usuarios/add", json=usuario.dict())
+    response = create_user(usuario)
     return response.json()
 
 
