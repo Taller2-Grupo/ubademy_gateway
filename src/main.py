@@ -188,8 +188,6 @@ async def swap_token(firebase_token: str):
     data = firebase.auth().get_account_info(firebase_token)
     mail = data["users"][0]["email"]
     user = get_user(mail)
-    if not user:
-        raise HTTPException(status_code=400, detail="Incorrect username")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username},
@@ -198,6 +196,6 @@ async def swap_token(firebase_token: str):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/api_usuarios/{rest_of_path:path}")
-async def redirect_typer(rest_of_path: str):
-    return RedirectResponse(f"https://ubademy-usuarios.herokuapp.com/{rest_of_path}")
+# @app.get("/api_usuarios/{rest_of_path:path}")
+# async def redirect_typer(rest_of_path: str):
+#     return RedirectResponse(f"https://ubademy-usuarios.herokuapp.com/{rest_of_path}")
