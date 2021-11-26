@@ -91,7 +91,7 @@ def test_post_redirect_400_api_inexistente(mock_httpx):
 
 # TESTS REDIRECT DEL DELETE
 @mock.patch("src.routers.redirect.httpx")
-def test_post_redirect_401_sin_jwt(mock_httpx):
+def test_delete_redirect_401_sin_jwt(mock_httpx):
     app.dependency_overrides = {}
     response = client.delete("/redirect/usuarios/test")
     assert response.status_code == 401
@@ -163,5 +163,46 @@ def test_put_redirect_arma_bien_url_cursos(mock_httpx):
 def test_put_redirect_400_api_inexistente(mock_httpx):
     app.dependency_overrides[get_current_active_user] = succesful_get_current_active_user
     response = client.put("/redirect/api_test/test")
+    assert response.status_code == 400
+    assert not mock_httpx.called
+
+
+# TESTS REDIRECT DEL PATCH
+@mock.patch("src.routers.redirect.httpx")
+def test_patch_redirect_401_sin_jwt(mock_httpx):
+    app.dependency_overrides = {}
+    response = client.patch("/redirect/usuarios/test")
+    assert response.status_code == 401
+    assert not mock_httpx.called
+
+
+@mock.patch("src.routers.redirect.httpx")
+def test_patch_redirect_arma_bien_url_usuarios(mock_httpx):
+    app.dependency_overrides[get_current_active_user] = succesful_get_current_active_user
+    body = {"test": "test"}
+    response = client.patch("/redirect/usuarios/test", json=body)
+    assert response.status_code == 200
+    assert mock_httpx.patch.call_args[0][0] == os.getenv("API_USUARIOS_URL") or "" + "/test"
+    assert "Authorization" in str(mock_httpx.patch.call_args[1])
+    assert "X-API-KEY" in str(mock_httpx.patch.call_args[1])
+    assert mock_httpx.patch.call_args[1].get("json") == body
+
+
+@mock.patch("src.routers.redirect.httpx")
+def test_patch_redirect_arma_bien_url_cursos(mock_httpx):
+    app.dependency_overrides[get_current_active_user] = succesful_get_current_active_user
+    body = {"test": "test"}
+    response = client.patch("/redirect/cursos/test", json=body)
+    assert response.status_code == 200
+    assert mock_httpx.patch.call_args[0][0] == os.getenv("API_CURSOS_URL") or "" + "/test"
+    assert "Authorization" in str(mock_httpx.patch.call_args[1])
+    assert "X-API-KEY" in str(mock_httpx.patch.call_args[1])
+    assert mock_httpx.patch.call_args[1].get("json") == body
+
+
+@mock.patch("src.routers.redirect.httpx")
+def test_patch_redirect_400_api_inexistente(mock_httpx):
+    app.dependency_overrides[get_current_active_user] = succesful_get_current_active_user
+    response = client.patch("/redirect/api_test/test")
     assert response.status_code == 400
     assert not mock_httpx.called
