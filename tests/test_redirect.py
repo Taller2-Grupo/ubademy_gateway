@@ -24,7 +24,9 @@ def test_get_redirect_arma_bien_url_usuarios(mock_httpx):
     app.dependency_overrides[get_current_active_user] = succesful_get_current_active_user
     response = client.get("/redirect/usuarios/test?asd=1")
     assert response.status_code == 200
-    assert mock_httpx.get.call_args[0][0] == os.getenv("API_USUARIOS_URL") + "/test?asd=1"
+    assert mock_httpx.get.call_args[0][0] == os.getenv("API_USUARIOS_URL") or "" + "/test?asd=1"
+    assert "Authorization" in str(mock_httpx.get.call_args[1])
+    assert "X-API-KEY" in str(mock_httpx.get.call_args[1])
 
 
 @mock.patch("src.routers.redirect.httpx")
@@ -32,7 +34,7 @@ def test_get_redirect_arma_bien_url_cursos(mock_httpx):
     app.dependency_overrides[get_current_active_user] = succesful_get_current_active_user
     response = client.get("/redirect/cursos/test?asd=1")
     assert response.status_code == 200
-    assert mock_httpx.get.call_args[0][0] == os.getenv("API_CURSOS_URL") + "/test?asd=1"
+    assert mock_httpx.get.call_args[0][0] == os.getenv("API_CURSOS_URL") or "" + "/test?asd=1"
 
 
 @mock.patch("src.routers.redirect.httpx")
