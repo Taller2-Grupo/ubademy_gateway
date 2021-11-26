@@ -34,6 +34,7 @@ def get_api_key(api: str):
 async def redirect_get(
         api_name: str,
         rest_of_path: str,
+        request: Request,
         current_user: User = Depends(get_current_active_user),
         authorization: Optional[str] = Header(None)):
     api_url = get_api_url(api_name)
@@ -42,7 +43,8 @@ async def redirect_get(
         "Authorization": authorization,
         "X-API-KEY": api_key
     }
-    return httpx.get(f"{api_url}/{rest_of_path}", headers=headers).json()
+    params = str(request.query_params)
+    return httpx.get(f"{api_url}/{rest_of_path}?{params}", headers=headers).json()
 
 
 @router.post("/{api_name}/{rest_of_path:path}")
