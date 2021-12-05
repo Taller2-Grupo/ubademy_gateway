@@ -1,20 +1,26 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
-from fastapi import Depends, FastAPI, HTTPException, Security, status
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security import (
-    OAuth2PasswordBearer,
-    OAuth2PasswordRequestForm,
-    SecurityScopes
+    OAuth2PasswordRequestForm
 )
-from jose import JWTError, jwt
+from jose import jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel, ValidationError
 from fastapi.middleware.cors import CORSMiddleware
+
+from src.auth import User, get_user, Token, get_current_active_user
 from src.schemas import UsuarioSchema
 from dotenv import load_dotenv
 import pyrebase
-from fastapi.responses import RedirectResponse
-from src.external_services.api_usuarios_external_service import get_user_by_username, create_user
+from src.external_services.api_usuarios_external_service import create_user
+from src.routers import redirect
+
+
+# TODO: Repetidos en auth.py
+SECRET_KEY = "6120898dcf1ef5f1b3e46e745d0cfdd1d9733042b24fa239617a9b4419d32253"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
 
 config = {
   "apiKey": "AIzaSyAN9QKyNRt236PAj2r4Axn-Kvc0iZFdIUM",
@@ -27,26 +33,6 @@ firebase = pyrebase.initialize_app(config)
 
 load_dotenv()
 
-# to get a string like this run:
-# openssl rand -hex 32
-SECRET_KEY = "6120898dcf1ef5f1b3e46e745d0cfdd1d9733042b24fa239617a9b4419d32253"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
-class TokenData(BaseModel):
-    username: Optional[str] = None
-    scopes: List[str] = []
-
-
-class User(BaseModel):
-    username: str
-
 
 class UserInDB(User):
     password: str
@@ -55,10 +41,6 @@ class UserInDB(User):
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="token",
-    scopes={"admin": "Privilegios de admin."}
-)
 
 app = FastAPI()
 
@@ -70,6 +52,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(redirect.router)
+
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -77,16 +61,6 @@ def verify_password(plain_password, hashed_password):
 
 def get_password_hash(password):
     return pwd_context.hash(password)
-
-
-def get_user(username: str):
-    response = get_user_by_username(username)
-
-    if response.status_code == 404:
-        raise HTTPException(404, "Usuario no encontrado")
-
-    usuario = UsuarioSchema.UsuarioResponse.parse_obj(response.json().get("data"))
-    return usuario
 
 
 def authenticate_user(username: str, password: str):
@@ -107,48 +81,6 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
-
-
-async def get_current_user(
-    security_scopes: SecurityScopes, token: str = Depends(oauth2_scheme)
-):
-    if security_scopes.scopes:
-        authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
-    else:
-        authenticate_value = f"Bearer"
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": authenticate_value},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        token_scopes = payload.get("scopes", [])
-        token_data = TokenData(scopes=token_scopes, username=username)
-    except (JWTError, ValidationError):
-        raise credentials_exception
-    user = get_user(token_data.username)
-    if user is None:
-        raise credentials_exception
-    for scope in security_scopes.scopes:
-        if scope not in token_data.scopes:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not enough permissions",
-                headers={"WWW-Authenticate": authenticate_value}
-            )
-    return user
-
-
-async def get_current_active_user(
-    current_user: User = Security(get_current_user)
-):
-    # if current_user.disabled:
-    #     raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
 
 
 @app.post("/token", response_model=Token)
@@ -194,8 +126,3 @@ async def swap_token(firebase_token: str):
         expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
-
-
-# @app.get("/api_usuarios/{rest_of_path:path}")
-# async def redirect_typer(rest_of_path: str):
-#     return RedirectResponse(f"https://ubademy-usuarios.herokuapp.com/{rest_of_path}")
