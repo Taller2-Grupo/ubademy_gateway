@@ -150,6 +150,38 @@ def test_swap_token_user_existe(mock_firebase, mock_get_user_by_username):
 
 @mock.patch("src.auth.get_user_by_username")
 @mock.patch("src.main.firebase")
+def test_swap_token_user_existe_estado_bloqueado(mock_firebase, mock_get_user_by_username):
+    mock_firebase.return_value = mock.Mock(
+        **{
+            "auth.return_value.get_account_info.return_value": {
+                    "users": [{"email": "l@gmail.com"}]
+            }
+        }
+    )
+    mock_get_user_by_username.return_value = mock.Mock(
+        **{
+            "status_code": 200,
+            "json.return_value": {
+                "success": "true",
+                "data": {
+                    "id": "28",
+                    "username": "l@gmail.com",
+                    "password": "$2b$12$9iS3whvq.k.zzDDoU41WQuDbEkQtFTaqGR/j3BMKx6phmWdasbJt.",
+                    "nombre": "Cosme",
+                    "apellido": "Fulanito",
+                    "esAdmin": "true",
+                    "fechaCreacion": "2021-11-05T19:39:54.669Z",
+                    "fechaActualizacion": "2021-11-06T00:00:00.000Z",
+                    "estado": "bloqueado"
+                }
+            }
+        })
+    response = client.get("/token/swap/qwerty")
+    assert response.status_code == 403
+
+
+@mock.patch("src.auth.get_user_by_username")
+@mock.patch("src.main.firebase")
 def test_swap_token_user_no_existe(mock_firebase, mock_get_user_by_username):
     mock_firebase.return_value = mock.Mock(
         **{
