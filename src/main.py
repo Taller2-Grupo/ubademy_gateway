@@ -126,3 +126,9 @@ async def swap_token(firebase_token: str):
         expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+# Para debuguear:
+# import uvicorn
+# if __name__ == "__main__":
+#     uvicorn.run(app, host="0.0.0.0", port=8000)
