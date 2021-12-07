@@ -37,6 +37,9 @@ def get_user(username: str):
     if response.status_code == 404:
         raise HTTPException(404, "Usuario no encontrado")
 
+    if response.json().get('data').get('estado') != 'activo':
+        raise HTTPException(403, "Usuario no se encuentra activo")
+
     usuario = UsuarioSchema.UsuarioResponse.parse_obj(response.json().get("data"))
     return usuario
 
