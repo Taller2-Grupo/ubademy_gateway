@@ -20,7 +20,8 @@ def test_token_usuario_existe_password_correcta(mock_get_user_by_username):
                     "apellido": "Fulanito",
                     "esAdmin": "true",
                     "fechaCreacion": "2021-11-05T19:39:54.669Z",
-                    "fechaActualizacion": "2021-11-06T00:00:00.000Z"
+                    "fechaActualizacion": "2021-11-06T00:00:00.000Z",
+                    "estado": "activo"
                 }
             }
         })
@@ -43,12 +44,37 @@ def test_token_usuario_existe_password_incorrecta(mock_get_user_by_username):
                     "apellido": "Fulanito",
                     "esAdmin": "true",
                     "fechaCreacion": "2021-11-05T19:39:54.669Z",
-                    "fechaActualizacion": "2021-11-06T00:00:00.000Z"
+                    "fechaActualizacion": "2021-11-06T00:00:00.000Z",
+                    "estado": "activo"
                 }
             }
         })
     response = client.post("/token", data={"username": "l@gmail.com", "password": "string2"})
     assert response.status_code == 400
+
+
+@mock.patch("src.auth.get_user_by_username")
+def test_token_usuario_existe_estado_bloqueado(mock_get_user_by_username):
+    mock_get_user_by_username.return_value = mock.Mock(
+        **{
+            "status_code": 200,
+            "json.return_value": {
+                "success": "true",
+                "data": {
+                    "id": "28",
+                    "username": "l@gmail.com",
+                    "password": "$2b$12$9iS3whvq.k.zzDDoU41WQuDbEkQtFTaqGR/j3BMKx6phmWdasbJt.",
+                    "nombre": "Cosme",
+                    "apellido": "Fulanito",
+                    "esAdmin": "true",
+                    "fechaCreacion": "2021-11-05T19:39:54.669Z",
+                    "fechaActualizacion": "2021-11-06T00:00:00.000Z",
+                    "estado": "bloqueado"
+                }
+            }
+        })
+    response = client.post("/token", data={"username": "l@gmail.com", "password": "string2"})
+    assert response.status_code == 403
 
 
 @mock.patch("src.auth.get_user_by_username")
@@ -73,7 +99,8 @@ def test_register(mock_create_user):
                     "apellido": "test",
                     "esAdmin": "false",
                     "fechaCreacion": "2021-11-05T19:39:54.669Z",
-                    "fechaActualizacion": "2021-11-06T00:00:00.000Z"
+                    "fechaActualizacion": "2021-11-06T00:00:00.000Z",
+                    "estado": "activo"
                 }
             }
         })
@@ -112,7 +139,8 @@ def test_swap_token_user_existe(mock_firebase, mock_get_user_by_username):
                     "apellido": "Fulanito",
                     "esAdmin": "true",
                     "fechaCreacion": "2021-11-05T19:39:54.669Z",
-                    "fechaActualizacion": "2021-11-06T00:00:00.000Z"
+                    "fechaActualizacion": "2021-11-06T00:00:00.000Z",
+                    "estado": "activo"
                 }
             }
         })
