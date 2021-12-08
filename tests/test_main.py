@@ -116,6 +116,29 @@ def test_register(mock_create_user):
     assert response.status_code == 200
 
 
+@mock.patch("src.main.create_user")
+def test_register_existing_user(mock_create_user):
+    mock_create_user.return_value = mock.Mock(
+        **{
+            "status_code": 400,
+            "json.return_value": {
+                "success": "false",
+                "error": "Ya existe el usuario"
+            }
+        })
+    response = client.post(
+        "/usuarios/registrar",
+        json={
+            "username": "test",
+            "password": "string",
+            "nombre": "test",
+            "apellido": "test",
+            "esAdmin": "false"
+        })
+    assert response.status_code == 400
+    assert response.json().get("detail") == "Ya existe el usuario"
+
+
 @mock.patch("src.auth.get_user_by_username")
 @mock.patch("src.main.firebase")
 def test_swap_token_user_existe(mock_firebase, mock_get_user_by_username):
