@@ -6,7 +6,8 @@ client = TestClient(app)
 
 
 @mock.patch("src.auth.get_user_by_username")
-def test_token_usuario_existe_password_correcta(mock_get_user_by_username):
+@mock.patch("src.main.post_evento_login_credenciales")
+def test_token_usuario_existe_password_correcta(mock_post_evento, mock_get_user_by_username):
     mock_get_user_by_username.return_value = mock.Mock(
         **{
             "status_code": 200,
@@ -30,7 +31,8 @@ def test_token_usuario_existe_password_correcta(mock_get_user_by_username):
 
 
 @mock.patch("src.auth.get_user_by_username")
-def test_token_usuario_existe_password_incorrecta(mock_get_user_by_username):
+@mock.patch("src.main.post_evento_login_credenciales")
+def test_token_usuario_existe_password_incorrecta(mock_post_evento, mock_get_user_by_username):
     mock_get_user_by_username.return_value = mock.Mock(
         **{
             "status_code": 200,
@@ -54,7 +56,8 @@ def test_token_usuario_existe_password_incorrecta(mock_get_user_by_username):
 
 
 @mock.patch("src.auth.get_user_by_username")
-def test_token_usuario_existe_estado_bloqueado(mock_get_user_by_username):
+@mock.patch("src.main.post_evento_login_credenciales")
+def test_token_usuario_existe_estado_bloqueado(mock_post_evento, mock_get_user_by_username):
     mock_get_user_by_username.return_value = mock.Mock(
         **{
             "status_code": 200,
@@ -78,7 +81,8 @@ def test_token_usuario_existe_estado_bloqueado(mock_get_user_by_username):
 
 
 @mock.patch("src.auth.get_user_by_username")
-def test_token_usuario_inexistente(mock_get_user_by_username):
+@mock.patch("src.main.post_evento_login_credenciales")
+def test_token_usuario_inexistente(mock_post_evento, mock_get_user_by_username):
     mock_get_user_by_username.return_value = mock.Mock(**{"status_code": 404})
     response = client.post("/token", data={"username": "string", "password": "string"})
     assert response.status_code == 404
@@ -141,7 +145,8 @@ def test_register_existing_user(mock_create_user):
 
 @mock.patch("src.auth.get_user_by_username")
 @mock.patch("src.main.firebase")
-def test_swap_token_user_existe(mock_firebase, mock_get_user_by_username):
+@mock.patch("src.main.post_evento_login_google")
+def test_swap_token_user_existe(mock_post_evento, mock_firebase, mock_get_user_by_username):
     mock_firebase.return_value = mock.Mock(
         **{
             "auth.return_value.get_account_info.return_value": {
@@ -173,7 +178,8 @@ def test_swap_token_user_existe(mock_firebase, mock_get_user_by_username):
 
 @mock.patch("src.auth.get_user_by_username")
 @mock.patch("src.main.firebase")
-def test_swap_token_user_existe_estado_bloqueado(mock_firebase, mock_get_user_by_username):
+@mock.patch("src.main.post_evento_login_google")
+def test_swap_token_user_existe_estado_bloqueado(mock_post_evento, mock_firebase, mock_get_user_by_username):
     mock_firebase.return_value = mock.Mock(
         **{
             "auth.return_value.get_account_info.return_value": {
@@ -205,7 +211,8 @@ def test_swap_token_user_existe_estado_bloqueado(mock_firebase, mock_get_user_by
 
 @mock.patch("src.auth.get_user_by_username")
 @mock.patch("src.main.firebase")
-def test_swap_token_user_no_existe(mock_firebase, mock_get_user_by_username):
+@mock.patch("src.main.post_evento_login_google")
+def test_swap_token_user_no_existe(mock_post_evento, mock_firebase, mock_get_user_by_username):
     mock_firebase.return_value = mock.Mock(
         **{
             "auth.return_value.get_account_info.return_value": {

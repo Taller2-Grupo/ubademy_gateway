@@ -12,7 +12,8 @@ from src.auth import User, get_user, Token, get_current_active_user
 from src.schemas import UsuarioSchema
 from dotenv import load_dotenv
 import pyrebase
-from src.external_services.api_usuarios_external_service import create_user
+from src.external_services.api_usuarios_external_service\
+    import create_user, post_evento_login_credenciales, post_evento_login_google
 from src.routers import redirect
 
 
@@ -100,6 +101,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         data={"sub": user.username, "scopes": scopes},
         expires_delta=access_token_expires
     )
+    post_evento_login_credenciales()
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -128,6 +131,8 @@ async def swap_token(firebase_token: str):
         data={"sub": user.username},
         expires_delta=access_token_expires
     )
+    post_evento_login_google()
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 

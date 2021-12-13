@@ -12,3 +12,13 @@ def get_user_by_username(username: str):
 def create_user(usuario: UsuarioSchema.CreateUsuarioRequest):
     headers = {"X-API-KEY": os.getenv("API_USUARIOS_KEY")}
     return httpx.post(os.getenv("API_USUARIOS_URL") + "/usuarios/add", json=usuario.dict(), headers=headers)
+
+
+def post_evento_login_credenciales():
+    headers = {"X-API-KEY": os.getenv("API_USUARIOS_KEY")}
+    httpx.post(os.getenv("API_USUARIOS_URL") + "/eventos/LOGIN_CREDENCIALES", headers=headers)
+
+
+def post_evento_login_google():
+    headers = {"X-API-KEY": os.getenv("API_USUARIOS_KEY")}
+    httpx.post(os.getenv("API_USUARIOS_URL") + "/eventos/LOGIN_GOOGLE", headers=headers)
