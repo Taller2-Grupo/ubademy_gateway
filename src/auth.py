@@ -10,7 +10,7 @@ from src.schemas import UsuarioSchema
 # to get a string like this run: openssl rand -hex 32
 SECRET_KEY = "6120898dcf1ef5f1b3e46e745d0cfdd1d9733042b24fa239617a9b4419d32253"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 180
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="token",
     scopes={"admin": "Privilegios de admin."}

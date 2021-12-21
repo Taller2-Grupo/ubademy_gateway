@@ -60,7 +60,12 @@ async def redirect_post(
         "Authorization": authorization,
         "X-API-KEY": api_key
     }
-    body = await request.json()
+
+    try:
+        body = await request.json()
+    except:
+        body = {}
+
     return httpx.post(f"{api_url}/{rest_of_path}", headers=headers, json=body).json()
 
 
@@ -92,7 +97,12 @@ async def redirect_put(
         "Authorization": authorization,
         "X-API-KEY": api_key
     }
-    body = await request.json()
+
+    try:
+        body = await request.json()
+    except:
+        body = {}
+
     return httpx.put(f"{api_url}/{rest_of_path}", headers=headers, json=body).json()
 
 
@@ -109,5 +119,8 @@ async def redirect_patch(
         "Authorization": authorization,
         "X-API-KEY": api_key
     }
-    body = await request.json()
+    try:
+        body = await request.json()
+    except:
+        body = {}
     return httpx.patch(f"{api_url}/{rest_of_path}", headers=headers, json=body).json()
